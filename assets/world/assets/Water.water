@@ -1,0 +1,17 @@
+#Mon May 27 05:04:58 PST 2024
+color=000d0933
+cullFace=1029
+dudv=dudv
+foamEdgeBias=0.0
+foamEdgeDistance=0.2
+foamFallOffDistance=12.0
+foamScale=0.8
+foamScrollSpeed=4.0
+maxVisibleDepth=100.0
+normalMap=waterNormal
+reflectivity=0.6
+shineDamper=20.0
+size=2500
+tiling=0.04
+waveSpeed=0.03
+waveStrength=0.04
