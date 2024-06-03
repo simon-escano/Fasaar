@@ -5,11 +5,20 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
@@ -30,6 +39,13 @@ import java.util.ArrayList;
 
 public class Fasaar extends ApplicationAdapter implements Screen {
 	Application app;
+	private Stage stage;
+	Table root;
+	Label chapterTitle;
+	Label chapterInstructions;
+	Label positionLabel;
+	TextButton textButton;
+	private Skin skin;
 	public static int id;
 	public static String color;
 	public static Client client;
@@ -41,6 +57,7 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 	private FirstPersonCameraController controller;
 	private Astronaut player;
 	private ArrayList<Astronaut> astronauts;
+	private boolean escapeKeyPressed = false;
 
 	public Fasaar(Application app, int id, String color) {
 		this.app = app;
@@ -54,6 +71,10 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 		scene = mundus.loadScene("Main Scene.mundus");
 		terrain = mundus.getAssetManager().getTerrainAssets().get(0).getTerrain();
 		decalManager = new DecalManager(new CameraGroupStrategy(scene.cam));
+
+		if (scene.cam instanceof PerspectiveCamera) {
+			((PerspectiveCamera) scene.cam).fieldOfView = 90;
+		}
 
 		controller = new FirstPersonCameraController(scene.cam);
 		controller.setVelocity(100f);
@@ -76,6 +97,10 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 	@Override
 	public void show() {
 		create();
+		stage = new Stage(new ScreenViewport());
+
+		skin = new Skin(Gdx.files.internal("UI/pixthulhu-ui.json"));
+		createHUD();
 	}
 
 	@Override
@@ -111,6 +136,10 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 		scene.render();
 
 		decalManager.flush();
+
+		positionLabel.setText("Position: " + (int) player.position.x + ", " + (int) scene.cam.position.y + ", " + (int) player.position.y);
+		stage.act(delta);
+		stage.draw();
 	}
 
 	@Override
@@ -144,6 +173,19 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 			}
 		} else {
 			player.state = Entity.State.IDLE;
+		}
+
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			escapeKeyPressed = !escapeKeyPressed;
+			if (escapeKeyPressed) {
+				Gdx.input.setInputProcessor(stage);
+				root.clear();
+				createEscapeMenu();
+			} else {
+				Gdx.input.setInputProcessor(controller);
+				root.clear();
+				createHUD();
+			}
 		}
 	}
 
@@ -201,4 +243,56 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 			}
 		});
     }
+
+	private void createHUD() {
+		root = new Table();
+		root.setFillParent(true);
+		stage.addActor(root);
+		root.defaults().space(10);
+		root.pad(50);
+
+		chapterTitle = new Label("Chapter 1: Stranded", skin, "subtitle");
+		root.add(chapterTitle).expand().top().left();
+
+		chapterInstructions = new Label("Get the orb at the end of the labyrinth.", skin);
+		root.add(chapterInstructions).expand().top().right();
+
+		root.row();
+
+		positionLabel = new Label("", skin);
+		root.add(positionLabel).expand().bottom().left();
+
+		textButton = new TextButton("Orbs collected: 0/4", skin);
+		root.add(textButton).expand().bottom().right();
+	}
+
+	private void createEscapeMenu() {
+		root = new Table();
+		root.setFillParent(true);
+		stage.addActor(root);
+		root.defaults().space(10);
+		root.pad(50);
+
+		TextButton logoutButton = new TextButton("Log Out", skin);
+		root.add(logoutButton);
+
+		root.row();
+
+		TextButton exitButton = new TextButton("Exit Game", skin);
+		root.add(exitButton);
+
+		logoutButton.addListener(new ChangeListener() {
+			@Override
+			public void changed(ChangeEvent event, Actor actor) {
+				app.setScreen(new Login(app));
+			}
+		});
+
+		exitButton.addListener(new ChangeListener() {
+			@Override
+			public void changed(ChangeEvent event, Actor actor) {
+				Gdx.app.exit();
+			}
+		});
+	}
 }

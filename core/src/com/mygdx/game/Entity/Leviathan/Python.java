@@ -7,6 +7,6 @@ public class Python extends Leviathan {
 
     public Python(float x, float y) {
         super(x, y);
-        velocity = 0.4f;
+        velocity = 0.5f;
     }
 }
