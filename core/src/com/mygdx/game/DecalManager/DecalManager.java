@@ -1,4 +1,4 @@
-package com.mygdx.game;
+package com.mygdx.game.DecalManager;
 
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class DecalManager {
     private final DecalBatch batch;
-    private final ArrayList<Sprite> sprites;
+    public final ArrayList<Sprite> sprites;
 
     public DecalManager(CameraGroupStrategy cameraGroupStrategy) {
         batch = new DecalBatch(cameraGroupStrategy);
@@ -19,8 +19,8 @@ public class DecalManager {
 
     public void update() {
         for (Sprite sprite : sprites) {
-            if (sprite.entity instanceof Astronaut) {
-                if (((Astronaut) sprite.entity).id == Fasaar.id) {
+            if (sprite.object instanceof Astronaut) {
+                if (((Astronaut) sprite.object).id == Fasaar.id) {
                     continue;
                 }
             }
@@ -38,8 +38,8 @@ public class DecalManager {
 
     public boolean contains(int id) {
         for (Sprite sprite : sprites) {
-            if (sprite.entity instanceof Astronaut) {
-                if (((Astronaut) sprite.entity).id == id) {
+            if (sprite.object instanceof Astronaut) {
+                if (((Astronaut) sprite.object).id == id) {
                     return true;
                 }
             }
@@ -49,10 +49,19 @@ public class DecalManager {
 
     public boolean containsLeviathan() {
         for (Sprite sprite : sprites) {
-            if (sprite.entity instanceof Leviathan) {
+            if (sprite.object instanceof Leviathan) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void removeLeviathan() {
+        for (int i = 0; i < sprites.size(); i++) {
+            if (sprites.get(i).object instanceof Leviathan) {
+                sprites.remove(i);
+                break;
+            }
+        }
     }
 }

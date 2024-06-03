@@ -8,6 +8,8 @@ import com.esotericsoftware.kryonet.Server;
 import com.mygdx.game.Database.Account;
 import com.mygdx.game.Entity.Astronaut;
 import com.mygdx.game.Entity.Entity;
+import com.mygdx.game.Entity.Leviathan.Cthulhu;
+import com.mygdx.game.Entity.Leviathan.ForestLurker;
 import com.mygdx.game.Entity.Leviathan.Leviathan;
 import com.mygdx.game.Entity.Leviathan.Python;
 
@@ -16,11 +18,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameServer {
+    private int currentChapter;
     private final Map<Integer, Astronaut> astronauts;
     private Leviathan leviathan;
-    private long lastUpdateTime = System.currentTimeMillis();
 
     public GameServer() throws IOException {
+        currentChapter = 1;
         astronauts = new HashMap<>();
         leviathan = new Python(260, 230);
         Server server = new Server();
@@ -33,11 +36,18 @@ public class GameServer {
         kryo.register(Entity.State.class);
         kryo.register(Astronaut.class);
         kryo.register(Python.class);
+        kryo.register(ForestLurker.class);
+        kryo.register(Cthulhu.class);
 
         Thread account = new Thread(new Account());
         account.start();
 
         server.addListener(new Listener() {
+            @Override
+            public void connected(Connection connection) {
+                server.sendToTCP(connection.getID(), currentChapter);
+            }
+
             @Override
             public void received(Connection connection, Object object) {
                 if (object instanceof Astronaut) {
@@ -55,21 +65,42 @@ public class GameServer {
                     leviathan.direction = ((Leviathan) object).direction;
                     leviathan.state = ((Leviathan) object).state;
                 }
+
+                if (object instanceof Integer) {
+                    currentChapter = (Integer) object;
+                    switch (currentChapter) {
+                        case 1:
+                            leviathan = new Python(860, 440);
+                            break;
+                        case 2:
+                            leviathan = new ForestLurker(1500, 2400);
+                            break;
+                        case 3:
+                            leviathan = null;
+                            break;
+                        case 4:
+                            leviathan = new Cthulhu(1441, 566);
+                            break;
+                    }
+                    server.sendToAllTCP(currentChapter);
+                }
             }
 
             @Override
             public void idle(Connection connection) {
-                float distance = 99999;
-                Astronaut closestAstronaut = null;
-                for (Astronaut astronaut : astronauts.values()) {
-                    if (distance > leviathan.position.dst(astronaut.position)) {
-                        distance = leviathan.position.dst(astronaut.position);
-                        closestAstronaut = astronaut;
+                if (leviathan != null) {
+                    float distance = 99999;
+                    Astronaut closestAstronaut = null;
+                    for (Astronaut astronaut : astronauts.values()) {
+                        if (distance > leviathan.position.dst(astronaut.position)) {
+                            distance = leviathan.position.dst(astronaut.position);
+                            closestAstronaut = astronaut;
+                        }
                     }
-                }
-                if (closestAstronaut != null) {
-                    leviathan.targetID = closestAstronaut.id;
-                    server.sendToAllTCP(leviathan);
+                    if (closestAstronaut != null) {
+                        leviathan.targetID = closestAstronaut.id;
+                        server.sendToAllTCP(leviathan);
+                    }
                 }
             }
 

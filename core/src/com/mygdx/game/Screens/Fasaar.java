@@ -26,25 +26,28 @@ import com.esotericsoftware.kryonet.Listener;
 import com.mbrlabs.mundus.commons.Scene;
 import com.mbrlabs.mundus.commons.terrain.Terrain;
 import com.mbrlabs.mundus.runtime.Mundus;
-import com.mygdx.game.DecalManager;
+import com.mygdx.game.Chapter;
+import com.mygdx.game.DecalManager.DecalManager;
+import com.mygdx.game.DecalManager.Sprite;
 import com.mygdx.game.Entity.Astronaut;
 import com.mygdx.game.Entity.Entity;
+import com.mygdx.game.Entity.Leviathan.Cthulhu;
+import com.mygdx.game.Entity.Leviathan.ForestLurker;
 import com.mygdx.game.Entity.Leviathan.Leviathan;
 import com.mygdx.game.Entity.Leviathan.Python;
-import com.mygdx.game.Sprite;
 import com.mygdx.game.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class Fasaar extends ApplicationAdapter implements Screen {
-	Application app;
+	public static Application app;
 	private Stage stage;
 	Table root;
-	Label chapterTitle;
-	Label chapterInstructions;
+	public static Label chapterTitle;
+	public static Label chapterInstructions;
 	Label positionLabel;
-	TextButton textButton;
+	public static TextButton textButton;
 	private Skin skin;
 	public static int id;
 	public static String color;
@@ -52,11 +55,13 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 	private Mundus mundus;
 	public static Scene scene;
 	private static Terrain terrain;
-	private DecalManager decalManager;
+	public static DecalManager decalManager;
 	private Leviathan leviathan;
 	private FirstPersonCameraController controller;
 	private Astronaut player;
 	private ArrayList<Astronaut> astronauts;
+	public static ArrayList<Chapter> chapters;
+	public static Integer currentChapter;
 	private boolean escapeKeyPressed = false;
 
 	public Fasaar(Application app, int id, String color) {
@@ -71,6 +76,13 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 		scene = mundus.loadScene("Main Scene.mundus");
 		terrain = mundus.getAssetManager().getTerrainAssets().get(0).getTerrain();
 		decalManager = new DecalManager(new CameraGroupStrategy(scene.cam));
+
+		chapters = new ArrayList<>();
+		chapters.add(new Chapter("Prologue"));
+		chapters.add(new Chapter("Chapter 1: Stranded", 670, 2000));
+		chapters.add(new Chapter("Chapter 2: The Forest of Shadows", 1800, 2500));
+		chapters.add(new Chapter("Chapter 2: The Ruins of The Forgotten", 1700, 1000));
+		chapters.add(new Chapter("Chapter 3: The Awakening", 260, 230));
 
 		if (scene.cam instanceof PerspectiveCamera) {
 			((PerspectiveCamera) scene.cam).fieldOfView = 90;
@@ -107,6 +119,19 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 	public void render(float delta) {
 		ScreenUtils.clear(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+		if (currentChapter != null) {
+			if (!chapters.get(currentChapter).inProgress) {
+				chapters.get(currentChapter).start();
+			}
+			chapters.get(currentChapter).update();
+
+			if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+				if (chapters.get(currentChapter).orb != null && player.position.dst(chapters.get(currentChapter).orb.position) < 50) {
+					chapters.get(currentChapter).orb.pickup();
+				}
+			}
+		}
 
 		handleKeyInput();
 		scene.cam.position.y = getY(scene.cam.position.x, scene.cam.position.z);
@@ -154,7 +179,7 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 
 	}
 
-	private static float getY(float x, float z) {
+	public static float getY(float x, float z) {
 		return terrain.getHeightAtWorldCoord(x, z, new Matrix4());
 	}
 
@@ -215,6 +240,8 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 		kryo.register(Entity.State.class);
 		kryo.register(Astronaut.class);
 		kryo.register(Python.class);
+		kryo.register(ForestLurker.class);
+		kryo.register(Cthulhu.class);
 
 		try {
 			client.connect(5000, "localhost", 54555, 54777);
@@ -240,6 +267,12 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 						leviathan.state = ((Leviathan) object).state;
 					}
 				}
+
+				if (object instanceof Integer) {
+					currentChapter = (Integer) object;
+					chapterTitle.setText(chapters.get(currentChapter).title);
+					decalManager.removeLeviathan();
+				}
 			}
 		});
     }
@@ -251,10 +284,10 @@ public class Fasaar extends ApplicationAdapter implements Screen {
 		root.defaults().space(10);
 		root.pad(50);
 
-		chapterTitle = new Label("Chapter 1: Stranded", skin, "subtitle");
+		chapterTitle = new Label("", skin, "subtitle");
 		root.add(chapterTitle).expand().top().left();
 
-		chapterInstructions = new Label("Get the orb at the end of the labyrinth.", skin);
+		chapterInstructions = new Label("Collect all the orbs", skin);
 		root.add(chapterInstructions).expand().top().right();
 
 		root.row();
